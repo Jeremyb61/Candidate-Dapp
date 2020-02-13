@@ -45,12 +45,9 @@ App = {
     web3.eth.getCoinbase((err, account) => {
       if (err === null) {
         App.account = account;
-        $("#address").html("Your Account: " + account);
-      } else {
-        console.log("ERR: ", err);
+        $("#accountAddress").html("Your Account: " + account);
       }
     });
-    // address: "0x6F73A24c971B0E4E24114C2962E50d9BeD481990"
 
     //Load contract data
     App.contracts.Election.deployed()
@@ -61,6 +58,9 @@ App = {
       .then(candidateCount => {
         var candidateResults = $("#candidateResults");
         candidateResults.empty();
+
+        let candidatesSelect = $("#candidateSelect");
+        candidatesSelect.empty();
 
         for (let i = 1; i <= candidateCount; i++) {
           electionIntance.candidates(i).then(candidate => {
@@ -77,15 +77,38 @@ App = {
               voteCount +
               "</td></tr>";
             candidateResults.append(candidateTemplate);
-            console.log(candidateTemplate);
-            console.log(candidateResults);
+
+            let candidateOption =
+              "<option value='" + id + "' >" + name + "</option>";
+            candidatesSelect.append(candidateOption);
           });
+        }
+        return electionIntance.voters(App.account);
+      })
+      .then(hasVoted => {
+        if (hasVoted) {
+          $("form").hide();
         }
         loader.hide();
         content.show();
       })
       .catch(error => {
         console.warn(error);
+      });
+  },
+
+  castVote: () => {
+    let candidateId = $("#candidateSelect").val();
+    App.contracts.Election.deployed()
+      .then(instance => {
+        return instance.vote(candidateId, { from: App.account });
+      })
+      .then(result => {
+        $("#content").hide();
+        $("#loader").show();
+      })
+      .catch(error => {
+        console.error(error);
       });
   }
 };
